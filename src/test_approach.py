@@ -2,14 +2,15 @@ import pytest
 from approaches.naive import Naive
 from approaches.srd import SRD
 from approaches.segment_tree import SegmentTree
+from approaches.sparse_table import SparseTable
 
 
 # --- FIXTURES ---
 
-@pytest.fixture(params=[Naive, SRD, SegmentTree])
+@pytest.fixture(params=[Naive, SRD, SegmentTree, SparseTable])
 def rmq_class(request):
     """
-    Fixture that supplies each RMQ class (Naive, SRD (Square Root Decomposition), and Segment Tree)
+    Fixture that supplies each RMQ class in params
     one by one to all tests that depend on it.
     """
     return request.param
