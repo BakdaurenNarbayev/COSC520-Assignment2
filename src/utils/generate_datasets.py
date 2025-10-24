@@ -6,7 +6,7 @@ import json
 def generate_datasets(
     sizes=[10**3, 10**4, 10**5, 10**6, 10**7],
     seed=42,
-    output_dir="..\datasets"
+    output_dir="..\\datasets"
 ):
     """
     Generate numeric datasets of various distributions for RMQ benchmarking.
