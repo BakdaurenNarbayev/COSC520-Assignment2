@@ -25,6 +25,9 @@ def load_results():
     return results
 
 def plot_metric(results, metric_name, ylabel, filename):
+    """
+    Creates a log-log plot of the specified metric vs dataset size.
+    """
     sizes = sorted(results.keys())
     all_algorithms = set()
     for n in sizes:
@@ -48,7 +51,7 @@ def plot_metric(results, metric_name, ylabel, filename):
         plt.plot(Ns, means, marker='o', label=algo)
         plt.fill_between(Ns, means - stds, means + stds, alpha=0.2)
 
-    plt.title(f"{metric_name} vs Dataset Size")
+    plt.title(f"{ylabel} vs Array Size (log-log scale)")
     plt.xlabel("Array Size (N)")
     plt.ylabel(ylabel)
     plt.xscale("log")
@@ -60,6 +63,9 @@ def plot_metric(results, metric_name, ylabel, filename):
     plt.close()
 
 def plot_memory_usage(results, filename="memory_usage"):
+    """
+    Creates a log-log plot of memory usage vs array size.
+    """
     sizes = sorted(results.keys())
     all_algorithms = set()
     for n in sizes:
@@ -80,7 +86,7 @@ def plot_memory_usage(results, filename="memory_usage"):
         mems = np.array(mems)
         plt.plot(Ns, mems, marker='o', label=algo)
 
-    plt.title("Memory Usage vs Dataset Size")
+    plt.title("Memory Usage vs Array Size (log-log scale)")
     plt.xlabel("Array Size (N)")
     plt.ylabel("Memory Usage (MB)")
     plt.xscale("log")
@@ -94,11 +100,11 @@ def plot_memory_usage(results, filename="memory_usage"):
 if __name__ == "__main__":
     results = load_results()
     metrics_to_plot = [
-        ("build", "Build Time (s)"),
-        ("query", "Average Query Time (s)"),
-        ("update", "Average Update Time (s)")
+        ("build", "Preprocessing Time (s)"),
+        ("query", "Query Time (s)"),
+        ("update", "Update Time (s)")
     ]
     for metric, ylabel in metrics_to_plot:
         plot_metric(results[metric], metric.capitalize(), ylabel, metric)
-    plot_memory_usage(results["build"], filename="memory_usage")
+    plot_memory_usage(results["preprocessing"], filename="memory_usage")
     print(f"All plots saved in {OUTPUT_DIR}")
