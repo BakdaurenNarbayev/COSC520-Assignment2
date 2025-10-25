@@ -6,6 +6,7 @@ from tqdm import tqdm
 import numpy as np
 import csv
 import concurrent.futures
+import tracemalloc
 
 from approaches.naive import Naive
 from approaches.srd import SRD
@@ -14,12 +15,12 @@ from approaches.sparse_table import SparseTable
 
 
 # --- CONFIG ---
-NUM_RUNS = 5              # how many times to repeat each benchmark for confidence intervals
+NUM_RUNS = 5
 NUM_QUERIES = 500
 NUM_UPDATES = 500
 DATASET_DIR = "datasets"
 EXPORT_CSV = True
-TIMEOUT_SECONDS = 120  # 2 minutes
+TIMEOUT_SECONDS = 120
 
 def try_run_with_timeout(func, *args, timeout=TIMEOUT_SECONDS, default=None, **kwargs):
     """Run a function with timeout; return default if it exceeds the limit."""
@@ -37,18 +38,31 @@ def load_datasets(dataset_dir=DATASET_DIR):
     datasets = {}
     for filename in os.listdir(dataset_dir):
         if filename.endswith(".json"):
-            size = int("".join(filter(str.isdigit, filename)))  # extract number from name
+            size = int("".join(filter(str.isdigit, filename)))
             with open(os.path.join(dataset_dir, filename), "r") as f:
                 datasets[size] = json.load(f)
     return dict(sorted(datasets.items()))
 
 
-# --- BENCHMARK HELPERS (with timeit + timeout) ---
+# --- BENCHMARK HELPERS ---
 
 def benchmark_build(structure_class, data):
-    """Measure time to build the data structure."""
+    """Measure time and memory to build the data structure."""
+    tracemalloc.start()
+    start_snapshot = tracemalloc.take_snapshot()
+
     timer = timeit.Timer(lambda: structure_class(data.copy()))
-    return timer.timeit(number=1)
+    build_time = timer.timeit(number=1)
+
+    end_snapshot = tracemalloc.take_snapshot()
+    tracemalloc.stop()
+
+    # Compute memory difference (peak memory usage during build)
+    stats = end_snapshot.compare_to(start_snapshot, 'lineno')
+    total_mem = sum([stat.size_diff for stat in stats])
+    total_mem_mb = max(total_mem / (1024 * 1024), 0)  # convert to MB, no negatives
+
+    return build_time, total_mem_mb
 
 
 def benchmark_query(structure_class, data, num_queries=NUM_QUERIES, pbar=None):
@@ -111,17 +125,19 @@ def run_benchmarks():
                 continue
 
             build_times, query_times, update_times = [], [], []
+            build_mem = 0
             slow = False
 
             total_steps = NUM_RUNS * (NUM_QUERIES + NUM_UPDATES)
             with tqdm(total=total_steps, desc=f"{algo_name} (N={n})", ncols=100, leave=False) as pbar:
                 for run_idx in range(NUM_RUNS):
                     # --- BUILD ---
-                    build_time = try_run_with_timeout(benchmark_build, algo, data)
-                    if build_time is None:
+                    build_result = try_run_with_timeout(benchmark_build, algo, data)
+                    if build_result is None:
                         print(f"{algo_name} (N={n}) — build exceeded {TIMEOUT_SECONDS}s, skipping larger sizes")
                         slow = True
                         break
+                    build_time, build_mem = build_result
                     build_times.append(build_time)
 
                     # --- QUERY ---
@@ -144,11 +160,12 @@ def run_benchmarks():
                 failed_algorithms.add(algo_name)
                 continue  # skip this and larger sizes
 
-            results["build"][n][algo_name] = (np.mean(build_times), np.std(build_times))
+            results["build"][n][algo_name] = (np.mean(build_times), np.std(build_times), build_mem)
             results["query"][n][algo_name] = (np.mean(query_times), np.std(query_times))
             results["update"][n][algo_name] = (np.mean(update_times), np.std(update_times))
 
             print(f"{algo_name:<15} | Build: {np.mean(build_times):.6f}s | "
+                  f"Mem: {build_mem:6.2f} MB | "
                   f"Query: {np.mean(query_times)*1e6:9.2f} µs | "
                   f"Update: {np.mean(update_times)*1e6:9.2f} µs")
 
@@ -157,21 +174,25 @@ def run_benchmarks():
 
 
 # --- CSV EXPORT ---
-def export_to_csv(results, filename="benchmark_results.csv"):
+def export_to_csv(results, filename="results\\benchmark_results.csv"):
     """Save results to CSV for external plotting or analysis."""
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Metric", "N", "Algorithm", "Mean", "StdDev"])
+        writer.writerow(["Metric", "N", "Algorithm", "Mean", "StdDev", "Memory_MB"])
         for metric in results:
             for n in results[metric]:
-                for algo, (mean, std) in results[metric][n].items():
-                    writer.writerow([metric, n, algo, mean, std])
+                for algo, values in results[metric][n].items():
+                    if metric == "build":
+                        mean, std, mem = values
+                    else:
+                        mean, std = values
+                        mem = ""
+                    writer.writerow([metric, n, algo, mean, std, mem])
     print(f"Results saved to {filename}")
 
 
-# --- MAIN ENTRY ---
+# --- MAIN ---
 if __name__ == "__main__":
     results = run_benchmarks()
-
     if EXPORT_CSV:
         export_to_csv(results)
