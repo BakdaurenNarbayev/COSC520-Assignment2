@@ -106,5 +106,5 @@ if __name__ == "__main__":
     ]
     for metric, ylabel in metrics_to_plot:
         plot_metric(results[metric], metric.capitalize(), ylabel, metric)
-    plot_memory_usage(results["preprocessing"], filename="memory_usage")
+    plot_memory_usage(results["build"], filename="memory_usage")
     print(f"All plots saved in {OUTPUT_DIR}")
