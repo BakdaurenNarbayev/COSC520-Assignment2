@@ -9,12 +9,23 @@ def generate_datasets(
     output_dir="..\\datasets"
 ):
     """
-    Generate numeric datasets of various distributions for RMQ benchmarking.
+    Generate multiple numeric datasets with different statistical distributions
+    for use in Range Minimum Query (RMQ) benchmarking.
+
+    Each dataset is stored as a `.json` file containing a list of numeric values.
 
     Args:
-        sizes (list[int]): List of dataset sizes (number of elements).
-        seed (int): Random seed for reproducibility.
-        output_dir (str): Folder where datasets will be saved.
+        sizes (list[int]): Dataset sizes (number of elements per file).
+        seed (int): Random seed to ensure reproducibility across runs.
+        output_dir (str): Target directory where all JSON files will be saved.
+
+    Notes:
+        - This script supports several built-in distributions:
+            • random_uniform    — Float values sampled uniformly from [-1000, 1000]
+            • random_int        — Integer values sampled uniformly from [-1000, 1000]
+            • sorted_ascending  — Linearly increasing values from -1000 to 1000
+            • sorted_descending — Linearly decreasing values from 1000 to -1000
+            • repeated_values   — Repeated small set of values (1.0-5.0)
     """
     np.random.seed(seed)
     random.seed(seed)

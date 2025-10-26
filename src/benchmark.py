@@ -1,3 +1,17 @@
+"""
+This script benchmarks various Range Minimum Query (RMQ) data structure
+implementations — including Naive, SRD, SegmentTree, and SparseTable — across
+different dataset sizes and input distributions.
+
+Metrics:
+    • Build (preprocessing) time and memory
+    • Query performance
+    • Update performance
+
+Each algorithm is evaluated multiple times per dataset size to compute mean and
+standard deviation values. Results are exported as a CSV file for plotting.
+"""
+
 import json
 import os
 import random
@@ -14,15 +28,27 @@ from approaches.segment_tree import SegmentTree
 from approaches.sparse_table import SparseTable
 
 # --- CONFIG ---
-NUM_RUNS = 5
-NUM_QUERIES = 500
-NUM_UPDATES = 500
+NUM_RUNS = 5                # Number of repetitions per benchmark
+NUM_QUERIES = 500           # Number of queries per run
+NUM_UPDATES = 500           # Number of updates per run
 DATASET_DIR = "datasets"
 EXPORT_CSV = True
-TIMEOUT_SECONDS = 120
+TIMEOUT_SECONDS = 120       # Max execution time per benchmark (seconds)
 
 def try_run_with_timeout(func, *args, timeout=TIMEOUT_SECONDS, default=None, **kwargs):
-    """Run a function with timeout; return default if it exceeds the limit."""
+    """
+    Execute a function with a time limit using a separate thread.
+
+    If the function exceeds the timeout, return `default`.
+
+    Args:
+        func (callable): Function to execute.
+        timeout (int): Maximum allowed runtime (seconds).
+        default (Any): Return value if timeout occurs.
+
+    Returns:
+        Any: Function result or `default` if timed out.
+    """
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(func, *args, **kwargs)
         try:
@@ -32,7 +58,15 @@ def try_run_with_timeout(func, *args, timeout=TIMEOUT_SECONDS, default=None, **k
 
 # --- DATA LOADING ---
 def load_datasets(dataset_dir=DATASET_DIR):
-    """Load all JSON datasets from the specified folder."""
+    """
+    Load JSON datasets from the specified directory.
+
+    Args:
+        dataset_dir (str): Path to the dataset folder.
+
+    Returns:
+        dict[int, list[float]]: Mapping from dataset size to numeric list.
+    """
     datasets = {}
     for filename in os.listdir(dataset_dir):
         if filename.endswith(".json"):
@@ -43,7 +77,16 @@ def load_datasets(dataset_dir=DATASET_DIR):
 
 # --- BENCHMARK HELPERS ---
 def benchmark_build(structure_class, data):
-    """Measure time and memory to build the data structure."""
+    """
+    Measure the build time and memory usage for constructing the RMQ structure.
+
+    Args:
+        structure_class: RMQ class (e.g., SegmentTree).
+        data (list[float]): Input dataset.
+
+    Returns:
+        tuple: (build_time_seconds, memory_usage_MB)
+    """
     tracemalloc.start()
     start_snapshot = tracemalloc.take_snapshot()
 
@@ -60,7 +103,18 @@ def benchmark_build(structure_class, data):
     return build_time, total_mem_mb
 
 def benchmark_query(structure_class, data, num_queries=NUM_QUERIES, pbar=None):
-    """Measure average query time using timeit."""
+    """
+    Measure the average query time for the RMQ structure.
+
+    Args:
+        structure_class: RMQ implementation.
+        data (list[float]): Dataset to query.
+        num_queries (int): Number of random queries to perform.
+        pbar (tqdm | None): Optional progress bar for visualization.
+
+    Returns:
+        float: Average query time per operation (seconds).
+    """
     rmq = structure_class(data.copy())
     n = len(data)
     queries = [(min(a,b), max(a,b)) for _ in range(num_queries)
@@ -76,7 +130,18 @@ def benchmark_query(structure_class, data, num_queries=NUM_QUERIES, pbar=None):
     return total_time / num_queries
 
 def benchmark_update(structure_class, data, num_updates=NUM_UPDATES, pbar=None):
-    """Measure average update time using timeit."""
+    """
+    Measure the average update time for the RMQ structure.
+
+    Args:
+        structure_class: RMQ implementation.
+        data (list[float]): Dataset to modify.
+        num_updates (int): Number of random updates.
+        pbar (tqdm | None): Optional progress bar for visualization.
+
+    Returns:
+        float: Average update time per operation (seconds).
+    """
     rmq = structure_class(data.copy())
     n = len(data)
     updates = [(random.randint(0, n - 1), random.uniform(-1000, 1000)) for _ in range(num_updates)]
@@ -92,6 +157,13 @@ def benchmark_update(structure_class, data, num_updates=NUM_UPDATES, pbar=None):
 
 # --- MAIN BENCHMARK FUNCTION ---
 def run_benchmarks():
+    """
+    Run benchmark across all algorithms and datasets.
+
+    Returns:
+        dict: Nested benchmark results organized as
+            results[metric][N][Algorithm] = (mean, std, [memory])
+    """
     datasets = load_datasets()
     algorithms = [Naive, SRD, SegmentTree, SparseTable]
 
@@ -176,7 +248,13 @@ def run_benchmarks():
 
 # --- CSV EXPORT ---
 def export_to_csv(results, filename="results/benchmark_results.csv"):
-    """Save results to CSV for external plotting or analysis."""
+    """
+    Save benchmark results to a structured CSV file for external plotting.
+
+    Args:
+        results (dict): Benchmark results dictionary from `run_benchmarks()`.
+        filename (str): Output CSV file path.
+    """
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w", newline="") as f:
         writer = csv.writer(f)

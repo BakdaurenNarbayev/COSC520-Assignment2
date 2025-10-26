@@ -9,11 +9,12 @@ class SRD:
     each block, and answers queries by combining block and element-level checks.
 
     Time Complexity:
+        - Build: O(N)
         - Update: O(1)
         - Query: O(√n)
 
     Attributes:
-        array (list[float]): The list of numeric values for queries and updates.
+        array (list[float]): The list of N numeric values for queries and updates.
         feed (list[float]): Precomputed minimums for each block.
         n (int): Amount of numbers in the array.
         block_size (int): Amount of numbers in each block.

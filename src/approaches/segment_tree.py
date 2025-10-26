@@ -12,7 +12,7 @@ class SegmentTree:
         - Query: O(log N)
 
     Attributes:
-        array (list[float]): The list of numeric values for queries and updates.
+        array (list[float]): The list of N numeric values for queries and updates.
         tree (list[float]): Segment tree storing range minimums.
         n (int): Amount of numbers in the array.
     """
@@ -42,16 +42,20 @@ class SegmentTree:
 
     def _construct_tree_recursive(self, node, start, end) -> None:
         """
-        Recursively build the segment tree.
+        Recursively construct the segment tree.
 
-        node represents the root
-        start represents the starting index
-        end represents the last index
+        Each node represents the minimum value in the subarray [start, end].
+
+        Args:
+            node (int): Current tree node index.
+            start (int): Start index of the segment represented by this node.
+            end (int): End index of the segment represented by this node.
         """
-        # Leaf node will have a single element
+        # Base Case: Leaf node — store the array element directly
         if start == end:
             self.tree[node] = self.array[start]
         else:
+            # Recursive Case: Internal node — build left and right children
             mid = (start + end) // 2
             # Recurse on the left child
             self._construct_tree_recursive(2 * node + 1, start, mid)
@@ -82,11 +86,22 @@ class SegmentTree:
         self._update_recursive(0, 0, self.n - 1, index, new_value)
 
     def _update_recursive(self, node, start, end, index, new_value) -> None:
-        """Recursively update a single element in the segment tree."""
+        """
+        Internal recursive function to update a specific index in the tree.
+
+        Args:
+            node (int): Current node index.
+            start (int): Start index of the segment.
+            end (int): End index of the segment.
+            index (int): Target index to update.
+            new_value (float): Updated value.
+        """
+        # Base Case: Leaf node — apply the update
         if start == end:
             self.array[index] = new_value
             self.tree[node] = new_value
         else:
+            # Recursive Case: Update the relevant child
             mid = (start + end) // 2
             # If index is in the left child, recurse on the left child
             if index <= mid:
@@ -122,22 +137,30 @@ class SegmentTree:
         return self._query_recursive(0, 0, self.n - 1, left, right)
 
     def _query_recursive(self, node, start, end, left, right) -> float:
-        """Recursively find the minimum value in the given range."""
-        # Case 1
-        # range represented by a node is completely outside the range
-        # return the maximum value 
+        """
+        Internal recursive query function.
+
+        Returns the minimum value within the given range [left, right].
+
+        Args:
+            node (int): Current node index.
+            start (int): Start of the node's range.
+            end (int): End of the node's range.
+            left (int): Query range start.
+            right (int): Query range end.
+
+        Returns:
+            float: Minimum value found in the overlap of [start, end] and [left, right].
+        """
+        # Case 1: No overlap — segment is completely outside query range
         if right < start or end < left:
             return float("inf")
         
-        # Case 2
-        # range represented by a node is completely inside the given range
-        # return the node value itself
+        # Case 2: Complete overlap — segment is fully inside query range
         if left <= start and end <= right:
             return self.tree[node]
         
-        # Case 3     
-        # range represented by a node is partially inside and partially outside the given range
-        # recurse through the left and right subtree
+        # Case 3: Partial overlap — recurse into both children
         mid = (start + end) // 2
         q1 = self._query_recursive(2 * node + 1, start, mid, left, right)
         q2 = self._query_recursive(2 * node + 2, mid + 1, end, left, right)

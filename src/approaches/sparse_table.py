@@ -15,7 +15,7 @@ class SparseTable:
         - Query: O(1)
 
     Attributes:
-        array (list[float]): The list of numeric values for queries and updates.
+        array (list[float]): The list of N numeric values for queries and updates.
         n (int): Amount of numbers in the array.
         lt (list[int]): Precomputed floor(log2) values for quick access.
         st (list[list[float]]): Sparse table storing range minimums.

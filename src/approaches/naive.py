@@ -4,11 +4,12 @@ class Naive:
     Source: https://iq.opengenus.org/range-minimum-query-naive
 
     Time complexity:
+        - Build: O(N) considering input processing
         - Update: O(1)
-        - Query: O(N) per range query
+        - Query: O(N)
 
     Attributes:
-        array (list[float]): The list of numeric values for queries and updates.
+        array (list[float]): The list of N numeric values for queries and updates.
     """
 
     def __init__(self, array: list[float]) -> None:
